@@ -23,7 +23,7 @@ jobs:
       - name: Download actionlint
         id: get_actionlint
         shell: bash
-        run: bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+        run: bash <(curl --fail --silent --show-error --location https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
 
       - name: Check workflow files
         shell: bash
@@ -94,4 +94,4 @@ jobs:
 
       - name: Run staticcheck
         if: steps.detect.outputs.has-module == 'true'
-        run: go run honnef.co/go/tools/cmd/staticcheck@latest ./...
+        run: go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...

@@ -40,7 +40,7 @@ func ReceiveOnly(ctx context.Context, source LineSource, operator string, pipeli
 		line, err := source.Receive()
 		if err != nil {
 			if err == io.EOF {
-				return nil
+				return io.EOF
 			}
 			return fmt.Errorf("receive APRS-IS packet: %w", err)
 		}
