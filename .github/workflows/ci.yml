@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  actionlint:
+    name: GitHub Actions lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Download actionlint
+        id: get_actionlint
+        shell: bash
+        run: bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+
+      - name: Check workflow files
+        shell: bash
+        run: ${{ steps.get_actionlint.outputs.executable }} -color
+
+  shell:
+    name: Shell checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Check Bash syntax
+        run: bash -n install.sh specialMessage.sh
+
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes shellcheck
+
+      - name: Lint shell scripts
+        run: shellcheck -s bash install.sh specialMessage.sh
+
+  go:
+    name: Go checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Detect Go module
+        id: detect
+        run: |
+          if [[ -f go.mod ]]; then
+            echo "has-module=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has-module=false" >> "$GITHUB_OUTPUT"
+            echo "No go.mod yet; Go checks will run once the service module is added."
+          fi
+
+      - name: Set up current stable Go
+        if: steps.detect.outputs.has-module == 'true'
+        uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          cache: true
+
+      - name: Check formatting
+        if: steps.detect.outputs.has-module == 'true'
+        run: |
+          unformatted="$(git ls-files -z '*.go' | xargs -0 gofmt -l)"
+          if [[ -n "$unformatted" ]]; then
+            printf 'Go files need gofmt:\n%s\n' "$unformatted"
+            exit 1
+          fi
+
+      - name: Run tests with race detection
+        if: steps.detect.outputs.has-module == 'true'
+        run: go test -race ./...
+
+      - name: Build packages
+        if: steps.detect.outputs.has-module == 'true'
+        run: go build ./...
+
+      - name: Run go vet
+        if: steps.detect.outputs.has-module == 'true'
+        run: go vet ./...
+
+      - name: Run staticcheck
+        if: steps.detect.outputs.has-module == 'true'
+        run: go run honnef.co/go/tools/cmd/staticcheck@latest ./...

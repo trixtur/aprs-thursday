@@ -1,0 +1,6 @@
+# Local planning notes; keep implementation details private to this checkout.
+/PLAN.md
+
+# Local Go build and module caches.
+/.gocache/
+/.gomodcache/
