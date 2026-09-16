@@ -95,3 +95,19 @@ jobs:
       - name: Run staticcheck
         if: steps.detect.outputs.has-module == 'true'
         run: go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
+
+  dynamic:
+    name: Dynamic sandbox
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up current stable Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          cache: true
+
+      - name: Run sandbox end-to-end tests
+        run: go test -race -v ./internal/sandbox -run 'TestSandbox(EndToEndDirectMessageFlow|DynamicWeeklySend)$'
