@@ -46,8 +46,8 @@ func TestReceiveOnlyProcessesDirectMessagesAndLogsIgnoredGroup(t *testing.T) {
 	pipeline := &receive.Pipeline{Operator: "N0CALL", Inbox: inboxStore, Outbox: outboxStore, Cards: card.Config{OperatorCallsign: "N0CALL", Greeting: "Greetings", OutputDir: t.TempDir()}, Delivery: d}
 	var events bytes.Buffer
 	err := service.ReceiveOnly(context.Background(), stream, "N0CALL", pipeline, observe.New(&events))
-	if err != nil {
-		t.Fatal(err)
+	if err != io.EOF {
+		t.Fatalf("ReceiveOnly() = %v, want EOF", err)
 	}
 	if d.count != 1 || !stream.closed {
 		t.Fatalf("delivery count=%d closed=%v", d.count, stream.closed)
