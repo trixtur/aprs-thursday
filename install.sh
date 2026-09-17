@@ -9,15 +9,18 @@ CONFIG_FILE="${CONFIG_DIR}/${SERVICE_NAME}.env"
 MESSAGE_FILE="${CONFIG_DIR}/weekly-message.txt"
 MESSAGE_OVERRIDES_DIR="${CONFIG_DIR}/message-overrides"
 UNIT_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
+SEND_NOW_UNIT_FILE="/etc/systemd/system/${SERVICE_NAME}-send-now.service"
 BUILD_DIR=""
 STAGED_ENV=""
 STAGED_UNIT=""
+STAGED_SEND_NOW_UNIT=""
 STAGED_MESSAGE=""
 
 cleanup() {
   [[ -z "$BUILD_DIR" ]] || rm -rf "$BUILD_DIR"
   [[ -z "$STAGED_ENV" ]] || rm -f "$STAGED_ENV"
   [[ -z "$STAGED_UNIT" ]] || rm -f "$STAGED_UNIT"
+  [[ -z "$STAGED_SEND_NOW_UNIT" ]] || rm -f "$STAGED_SEND_NOW_UNIT"
   [[ -z "$STAGED_MESSAGE" ]] || rm -f "$STAGED_MESSAGE"
 }
 trap cleanup EXIT
@@ -55,15 +58,21 @@ if [[ $# -gt 1 ]]; then
 fi
 
 SERVICE_BINARY=""
+SEND_NOW_BINARY=""
 if [[ $# -eq 1 ]]; then
   SERVICE_BINARY="$1"
   [[ "$SERVICE_BINARY" = /* ]] || SERVICE_BINARY="${PROJECT_DIR}/${SERVICE_BINARY}"
   [[ -f "$SERVICE_BINARY" && -x "$SERVICE_BINARY" ]] || fail "The supplied binary is missing or not executable: $SERVICE_BINARY"
+  command -v go >/dev/null 2>&1 || fail "Go is required to build the manual send command."
+  BUILD_DIR="$(mktemp -d)"
+  SEND_NOW_BINARY="${BUILD_DIR}/${SERVICE_NAME}-send-now"
+  (cd "$PROJECT_DIR" && go build -o "$SEND_NOW_BINARY" ./cmd/aprs-thursday-send-now)
 elif [[ -f "${PROJECT_DIR}/cmd/aprs-thursday/main.go" ]]; then
   command -v go >/dev/null 2>&1 || fail "Go is required to build the service."
   BUILD_DIR="$(mktemp -d)"
   SERVICE_BINARY="${BUILD_DIR}/${SERVICE_NAME}"
-  (cd "$PROJECT_DIR" && go build -o "$SERVICE_BINARY" ./cmd/aprs-thursday)
+  SEND_NOW_BINARY="${BUILD_DIR}/${SERVICE_NAME}-send-now"
+  (cd "$PROJECT_DIR" && go build -o "$SERVICE_BINARY" ./cmd/aprs-thursday && go build -o "$SEND_NOW_BINARY" ./cmd/aprs-thursday-send-now)
 else
   fail "The Go service is not implemented yet and no binary was supplied. Once available, add ./cmd/aprs-thursday or pass a built executable to this installer."
 fi
@@ -103,6 +112,7 @@ WEEKLY_MESSAGE_BYTES="${WEEKLY_MESSAGE_BYTES//[[:space:]]/}"
 
 STAGED_ENV="$(mktemp)"
 STAGED_UNIT="$(mktemp)"
+STAGED_SEND_NOW_UNIT="$(mktemp)"
 STAGED_MESSAGE="$(mktemp)"
 chmod 600 "$STAGED_ENV"
 chmod 600 "$STAGED_MESSAGE"
@@ -145,6 +155,26 @@ ReadWritePaths=/var/lib/${SERVICE_NAME}
 WantedBy=multi-user.target
 EOF
 
+cat > "$STAGED_SEND_NOW_UNIT" <<EOF
+[Unit]
+Description=Send one APRS Thursday message immediately
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=${SERVICE_NAME}
+Group=${SERVICE_NAME}
+EnvironmentFile=${CONFIG_FILE}
+ExecStart=${INSTALL_DIR}/${SERVICE_NAME}-send-now --confirm
+WorkingDirectory=/var/lib/${SERVICE_NAME}
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/${SERVICE_NAME}
+EOF
+
 printf 'Installing %s with sudo. The service will start after installation.\n' "$SERVICE_NAME"
 sudo -v
 if ! getent group "$SERVICE_NAME" >/dev/null; then
@@ -155,9 +185,11 @@ if ! id -u "$SERVICE_NAME" >/dev/null 2>&1; then
 fi
 sudo install -d -o root -g "$SERVICE_NAME" -m 0750 "$CONFIG_DIR" "$MESSAGE_OVERRIDES_DIR"
 sudo install -o root -g root -m 0755 "$SERVICE_BINARY" "${INSTALL_DIR}/${SERVICE_NAME}"
+sudo install -o root -g root -m 0755 "$SEND_NOW_BINARY" "${INSTALL_DIR}/${SERVICE_NAME}-send-now"
 sudo install -o root -g "$SERVICE_NAME" -m 0640 "$STAGED_ENV" "$CONFIG_FILE"
 sudo install -o root -g "$SERVICE_NAME" -m 0640 "$STAGED_MESSAGE" "$MESSAGE_FILE"
 sudo install -o root -g root -m 0644 "$STAGED_UNIT" "$UNIT_FILE"
+sudo install -o root -g root -m 0644 "$STAGED_SEND_NOW_UNIT" "$SEND_NOW_UNIT_FILE"
 sudo systemctl daemon-reload
 sudo systemctl enable --now "${SERVICE_NAME}.service"
 
