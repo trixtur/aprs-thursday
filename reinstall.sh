@@ -24,7 +24,7 @@ fail() {
 command -v go >/dev/null 2>&1 || fail "Go is required to rebuild the service."
 command -v sudo >/dev/null 2>&1 || fail "sudo is required to reinstall the service."
 command -v systemctl >/dev/null 2>&1 || fail "systemctl is required."
-[[ -f "$CONFIG_FILE" ]] || fail "${CONFIG_FILE} is missing; use install.sh for a first installation."
+[[ -r "$CONFIG_FILE" ]] || fail "${CONFIG_FILE} is missing; use install.sh for a first installation."
 
 BUILD_DIR="$(mktemp -d)"
 (cd "$PROJECT_DIR" && go build -o "${BUILD_DIR}/${SERVICE_NAME}" ./cmd/aprs-thursday && go build -o "${BUILD_DIR}/${SERVICE_NAME}-send-now" ./cmd/aprs-thursday-send-now && go build -o "${BUILD_DIR}/${SERVICE_NAME}-status" ./cmd/aprs-thursday-status)
