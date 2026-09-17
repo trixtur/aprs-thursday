@@ -49,6 +49,17 @@ You can also pass a prebuilt executable:
 ./install.sh ./path/to/aprs-thursday
 ```
 
+To rebuild an existing installation after pulling new code, use the in-place
+reinstall script. It preserves the APRS credentials, message files, cards, and
+send history, and restarts only this service:
+
+```sh
+./reinstall.sh
+```
+
+Use `install.sh` only for a first installation or when you intentionally want
+to enter the configuration again.
+
 To inspect cards waiting for delivery, run the read-only status command. It uses `/var/lib/aprs-thursday/outbox.json` by default:
 
 ```sh

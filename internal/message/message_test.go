@@ -58,6 +58,16 @@ func TestResolveUsesRegularMessageWhenOverrideIsAbsent(t *testing.T) {
 	}
 }
 
+func TestResolveTrimsRegularMessageFileLineEnding(t *testing.T) {
+	got, err := message.Resolve("CQ HOTG Weekly greeting\n", t.TempDir(), time.Date(2026, time.January, 1, 9, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("Resolve() error = %v", err)
+	}
+	if want := "CQ HOTG Weekly greeting"; got != want {
+		t.Fatalf("Resolve() = %q, want %q", got, want)
+	}
+}
+
 func TestResolveRejectsInvalidOrOversizedMessages(t *testing.T) {
 	tests := []struct {
 		name    string
