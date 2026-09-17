@@ -26,7 +26,7 @@ func Resolve(regular, overridesDir string, scheduledAt time.Time) (string, error
 	contents, err := os.ReadFile(path)
 	switch {
 	case err == nil:
-		return validate(strings.TrimSuffix(strings.TrimSuffix(string(contents), "\n"), "\r"))
+		return validate(string(contents))
 	case !os.IsNotExist(err):
 		return "", fmt.Errorf("read dated message override: %w", err)
 	default:
@@ -35,8 +35,12 @@ func Resolve(regular, overridesDir string, scheduledAt time.Time) (string, error
 }
 
 func validate(body string) (string, error) {
+	body = strings.TrimRight(body, "\r\n")
 	if !strings.HasPrefix(strings.ToUpper(body), "CQ HOTG ") {
 		return "", fmt.Errorf("message must begin with %q", "CQ HOTG ")
+	}
+	if strings.ContainsAny(body, "\r\n") {
+		return "", fmt.Errorf("message body must be one non-empty line")
 	}
 	if len([]byte(body)) > maxBodyBytes {
 		return "", fmt.Errorf("message is %d bytes; APRS message bodies are limited to %d bytes", len([]byte(body)), maxBodyBytes)
