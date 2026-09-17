@@ -59,6 +59,7 @@ fi
 
 SERVICE_BINARY=""
 SEND_NOW_BINARY=""
+STATUS_BINARY=""
 if [[ $# -eq 1 ]]; then
   SERVICE_BINARY="$1"
   [[ "$SERVICE_BINARY" = /* ]] || SERVICE_BINARY="${PROJECT_DIR}/${SERVICE_BINARY}"
@@ -66,13 +67,15 @@ if [[ $# -eq 1 ]]; then
   command -v go >/dev/null 2>&1 || fail "Go is required to build the manual send command."
   BUILD_DIR="$(mktemp -d)"
   SEND_NOW_BINARY="${BUILD_DIR}/${SERVICE_NAME}-send-now"
-  (cd "$PROJECT_DIR" && go build -o "$SEND_NOW_BINARY" ./cmd/aprs-thursday-send-now)
+  STATUS_BINARY="${BUILD_DIR}/${SERVICE_NAME}-status"
+  (cd "$PROJECT_DIR" && go build -o "$SEND_NOW_BINARY" ./cmd/aprs-thursday-send-now && go build -o "$STATUS_BINARY" ./cmd/aprs-thursday-status)
 elif [[ -f "${PROJECT_DIR}/cmd/aprs-thursday/main.go" ]]; then
   command -v go >/dev/null 2>&1 || fail "Go is required to build the service."
   BUILD_DIR="$(mktemp -d)"
   SERVICE_BINARY="${BUILD_DIR}/${SERVICE_NAME}"
   SEND_NOW_BINARY="${BUILD_DIR}/${SERVICE_NAME}-send-now"
-  (cd "$PROJECT_DIR" && go build -o "$SERVICE_BINARY" ./cmd/aprs-thursday && go build -o "$SEND_NOW_BINARY" ./cmd/aprs-thursday-send-now)
+  STATUS_BINARY="${BUILD_DIR}/${SERVICE_NAME}-status"
+  (cd "$PROJECT_DIR" && go build -o "$SERVICE_BINARY" ./cmd/aprs-thursday && go build -o "$SEND_NOW_BINARY" ./cmd/aprs-thursday-send-now && go build -o "$STATUS_BINARY" ./cmd/aprs-thursday-status)
 else
   fail "The Go service is not implemented yet and no binary was supplied. Once available, add ./cmd/aprs-thursday or pass a built executable to this installer."
 fi
@@ -186,6 +189,7 @@ fi
 sudo install -d -o root -g "$SERVICE_NAME" -m 0750 "$CONFIG_DIR" "$MESSAGE_OVERRIDES_DIR"
 sudo install -o root -g root -m 0755 "$SERVICE_BINARY" "${INSTALL_DIR}/${SERVICE_NAME}"
 sudo install -o root -g root -m 0755 "$SEND_NOW_BINARY" "${INSTALL_DIR}/${SERVICE_NAME}-send-now"
+sudo install -o root -g root -m 0755 "$STATUS_BINARY" "${INSTALL_DIR}/${SERVICE_NAME}-status"
 sudo install -o root -g "$SERVICE_NAME" -m 0640 "$STAGED_ENV" "$CONFIG_FILE"
 sudo install -o root -g "$SERVICE_NAME" -m 0640 "$STAGED_MESSAGE" "$MESSAGE_FILE"
 sudo install -o root -g root -m 0644 "$STAGED_UNIT" "$UNIT_FILE"
