@@ -190,6 +190,7 @@ sudo install -d -o root -g "$SERVICE_NAME" -m 0750 "$CONFIG_DIR" "$MESSAGE_OVERR
 sudo install -o root -g root -m 0755 "$SERVICE_BINARY" "${INSTALL_DIR}/${SERVICE_NAME}"
 sudo install -o root -g root -m 0755 "$SEND_NOW_BINARY" "${INSTALL_DIR}/${SERVICE_NAME}-send-now"
 sudo install -o root -g root -m 0755 "$STATUS_BINARY" "${INSTALL_DIR}/${SERVICE_NAME}-status"
+sudo install -o root -g root -m 0755 "${PROJECT_DIR}/signout.sh" "${INSTALL_DIR}/${SERVICE_NAME}-signout"
 sudo install -o root -g "$SERVICE_NAME" -m 0640 "$STAGED_ENV" "$CONFIG_FILE"
 sudo install -o root -g "$SERVICE_NAME" -m 0640 "$STAGED_MESSAGE" "$MESSAGE_FILE"
 sudo install -o root -g root -m 0644 "$STAGED_UNIT" "$UNIT_FILE"
