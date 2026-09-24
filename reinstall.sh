@@ -55,6 +55,7 @@ sudo -v
 sudo install -o root -g root -m 0755 "${BUILD_DIR}/${SERVICE_NAME}" "${INSTALL_DIR}/${SERVICE_NAME}"
 sudo install -o root -g root -m 0755 "${BUILD_DIR}/${SERVICE_NAME}-send-now" "${INSTALL_DIR}/${SERVICE_NAME}-send-now"
 sudo install -o root -g root -m 0755 "${BUILD_DIR}/${SERVICE_NAME}-status" "${INSTALL_DIR}/${SERVICE_NAME}-status"
+sudo install -o root -g root -m 0755 "${PROJECT_DIR}/signout.sh" "${INSTALL_DIR}/${SERVICE_NAME}-signout"
 sudo install -o root -g root -m 0644 "$STAGED_UNIT" "$SEND_NOW_UNIT_FILE"
 sudo systemctl daemon-reload
 sudo systemctl restart "${SERVICE_NAME}.service"

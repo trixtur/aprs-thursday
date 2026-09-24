@@ -60,6 +60,15 @@ send history, and restarts only this service:
 Use `install.sh` only for a first installation or when you intentionally want
 to enter the configuration again.
 
+To leave the `HOTG` ANSRVR group after the Thursday net, run:
+
+```sh
+sudo /usr/local/bin/aprs-thursday-signout
+```
+
+The command is restricted to Thursdays and sends `U HOTG` using the installed
+APRS-IS configuration. Use `--force` only for a deliberate test on another day.
+
 To inspect cards waiting for delivery, run the read-only status command. It uses `/var/lib/aprs-thursday/outbox.json` by default:
 
 ```sh
