@@ -66,13 +66,19 @@ To leave the `HOTG` ANSRVR group after the Thursday net, run:
 sudo /usr/local/bin/aprs-thursday-signout
 ```
 
-The command is restricted to Thursdays and sends `U HOTG` using the installed
-APRS-IS configuration. Use `--force` only for a deliberate test on another day.
+The command sends `U HOTG` using a short APRS-IS connection. It leaves the
+group subscription; it does not log the APRS Thursday service out or stop its
+listener. Direct messages to the operator can still be received afterward.
+The command is restricted to Thursdays. Use `--force` only for a deliberate
+test on another day.
 
-To inspect cards waiting for delivery, run the read-only status command. It uses `/var/lib/aprs-thursday/outbox.json` by default:
+Cards are rendered and stored locally, but external card delivery is not
+configured yet. They remain pending in the outbox. To inspect them, run the
+read-only status command. The installed binary reads
+`/var/lib/aprs-thursday/outbox.json` by default:
 
 ```sh
-go run ./cmd/aprs-thursday-status
+sudo /usr/local/bin/aprs-thursday-status
 ```
 
 For a different outbox location, use `-outbox /path/to/outbox.json`.

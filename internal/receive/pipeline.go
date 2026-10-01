@@ -25,13 +25,10 @@ type Notifier interface {
 }
 
 // Handle processes one parsed packet. The bool reports whether a new card was
-// delivered; duplicates and group traffic return false without an error.
+// created; duplicates and group traffic return false without an error.
 func (p *Pipeline) Handle(message aprs.Message) (bool, error) {
 	if p == nil || p.Inbox == nil {
 		return false, fmt.Errorf("receive pipeline inbox is required")
-	}
-	if p.Delivery == nil {
-		return false, fmt.Errorf("receive pipeline delivery is required")
 	}
 	if p.Outbox == nil {
 		return false, fmt.Errorf("receive pipeline outbox is required")
@@ -65,6 +62,11 @@ func (p *Pipeline) Handle(message aprs.Message) (bool, error) {
 		if err := p.Notify.CardPending(path, record.Message); err != nil {
 			return false, err
 		}
+	}
+	// With no delivery implementation configured, keep the rendered card in
+	// the pending outbox for the operator. A local archive is not a delivery.
+	if p.Delivery == nil {
+		return added, nil
 	}
 	if err := p.Delivery.Deliver(path, record.Message); err != nil {
 		_ = p.Outbox.MarkFailed(record.Message.ID, err.Error())

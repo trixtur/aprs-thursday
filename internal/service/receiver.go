@@ -64,7 +64,7 @@ func ReceiveOnly(ctx context.Context, source LineSource, operator string, pipeli
 		if logger != nil {
 			kind := "aprs.message_duplicate"
 			if created {
-				kind = "aprs.card_delivered"
+				kind = "aprs.card_created"
 			}
 			_ = logger.Event(kind, map[string]any{"sender": message.From, "message_id": message.ID})
 		}
