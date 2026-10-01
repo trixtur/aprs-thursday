@@ -9,7 +9,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/trixtur/aprs-thursday/internal/aprs"
 	"github.com/trixtur/aprs-thursday/internal/aprsis"
 	"github.com/trixtur/aprs-thursday/internal/card"
 	"github.com/trixtur/aprs-thursday/internal/config"
@@ -21,10 +20,6 @@ import (
 	"github.com/trixtur/aprs-thursday/internal/state"
 	"github.com/trixtur/aprs-thursday/internal/weekly"
 )
-
-type archiveDelivery struct{}
-
-func (archiveDelivery) Deliver(string, aprs.Message) error { return nil }
 
 func main() {
 	cfg, err := config.FromEnv(os.Getenv)
@@ -47,7 +42,7 @@ func main() {
 		log.Fatal(err)
 	}
 	logger := observe.New(os.Stderr)
-	pipeline := &receive.Pipeline{Operator: cfg.OperatorCallsign, Inbox: inboxStore, Outbox: outboxStore, Cards: card.Config{OperatorCallsign: cfg.OperatorCallsign, Greeting: cfg.CardGreeting, Location: cfg.CardLocation, OutputDir: cfg.CardOutputDir}, Delivery: archiveDelivery{}}
+	pipeline := &receive.Pipeline{Operator: cfg.OperatorCallsign, Inbox: inboxStore, Outbox: outboxStore, Cards: card.Config{OperatorCallsign: cfg.OperatorCallsign, Greeting: cfg.CardGreeting, Location: cfg.CardLocation, OutputDir: cfg.CardOutputDir}}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	shared := aprsis.NewShared(cfg.APRSCallsign)
