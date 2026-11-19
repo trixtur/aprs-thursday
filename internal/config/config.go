@@ -10,19 +10,21 @@ import (
 )
 
 type Config struct {
-	OperatorCallsign string
-	APRSCallsign     string
-	APRSPasscode     string
-	APRSISServer     string
-	WeeklyMessage    string
-	MessageOverrides string
-	InboxPath        string
-	OutboxPath       string
-	CardOutputDir    string
-	CardGreeting     string
-	CardLocation     string
-	ScheduleTime     string
-	ScheduleTimezone string
+	TXMode, RFPath, RFDevice string
+	RFDelay                  time.Duration
+	OperatorCallsign         string
+	APRSCallsign             string
+	APRSPasscode             string
+	APRSISServer             string
+	WeeklyMessage            string
+	MessageOverrides         string
+	InboxPath                string
+	OutboxPath               string
+	CardOutputDir            string
+	CardGreeting             string
+	CardLocation             string
+	ScheduleTime             string
+	ScheduleTimezone         string
 }
 
 func FromEnv(getenv func(string) string) (Config, error) {
@@ -43,6 +45,20 @@ func FromEnv(getenv func(string) string) (Config, error) {
 		CardLocation:     getenvOr(getenv, "CARD_LOCATION", ""),
 		ScheduleTime:     getenvOr(getenv, "SCHEDULE_TIME", "09:00"),
 		ScheduleTimezone: getenvOr(getenv, "SCHEDULE_TIMEZONE", "UTC"),
+	}
+	c.TXMode = getenvOr(getenv, "APRS_TX_MODE", "aprs-is")
+	switch c.TXMode {
+	case "rf":
+		c.RFDevice = getenvOr(getenv, "RF_AUDIO_DEVICE", "plughw:0,0")
+		c.RFPath = strings.TrimSpace(getenv("RF_PATH"))
+		delay, err := time.ParseDuration(getenvOr(getenv, "RF_TX_DELAY", "500ms"))
+		if err != nil {
+			return Config{}, fmt.Errorf("invalid RF_TX_DELAY: %w", err)
+		}
+		c.RFDelay = delay
+	case "aprs-is":
+	default:
+		return Config{}, fmt.Errorf("unknown APRS_TX_MODE %q", c.TXMode)
 	}
 	missing := make([]string, 0)
 	for key, value := range map[string]string{"OPERATOR_CALLSIGN": c.OperatorCallsign, "APRS_CALLSIGN": c.APRSCallsign, "APRS_PASSCODE": c.APRSPasscode, "APRS_IS_SERVER": c.APRSISServer} {

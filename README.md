@@ -33,6 +33,21 @@ The service will use these settings:
 
 Use a callsign-SSID that is not already connected to APRS-IS by the iGate or another client. Keep the passcode in the protected environment file used by systemd. Do not put credentials in Git or in shell history.
 
+## Transmitting check-ins over RF
+
+Scheduled check-ins and the send-now service default to APRS-IS. To send them through a VOX radio, install Debian's `alsa-utils` package and give the service account playback access (typically `sudo usermod -aG audio aprs-thursday`). Set these values in `/etc/aprs-thursday/aprs-thursday.env`:
+
+```sh
+APRS_TX_MODE=rf
+RF_AUDIO_DEVICE=plughw:0,0
+RF_PATH=WIDE1-1,WIDE2-1
+RF_TX_DELAY=500ms
+```
+
+Pick a path appropriate for your station. An empty or omitted `RF_PATH` sends direct. The delay sets the duration of opening flags to give VOX time to key. Restart `aprs-thursday.service` to load the settings. For one on-air check, run `sudo systemctl start aprs-thursday-send-now.service` and listen on a second receiver. Playback completion only confirms local playback.
+
+Replies still arrive over APRS-IS, so keep the existing login settings. An RF check-in needs an iGate within reach to get to ANSRVR. When sharing a transmitter with another application, arrange exclusive use during playback. The service has no carrier sensing or shared transmit queue.
+
 ## Installation
 
 `install.sh` is intended for a Linux machine running systemd. It asks for the callsigns, APRS-IS connection details, schedule, timezone, and regular message. It creates a dedicated account and unit, enables the unit at boot, and starts it. It does not touch other services.
