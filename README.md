@@ -46,7 +46,7 @@ RF_TX_DELAY=500ms
 
 Pick a path appropriate for your station. An empty or omitted `RF_PATH` sends direct. The delay sets the duration of opening flags to give VOX time to key. Restart `aprs-thursday.service` to load the settings. For one on-air check, run `sudo systemctl start aprs-thursday-send-now.service` and listen on a second receiver. Playback completion only confirms local playback.
 
-Replies still arrive over APRS-IS, so keep the existing login settings. An RF check-in needs an iGate within reach to get to ANSRVR. When sharing a transmitter with another application, arrange exclusive use during playback. The service has no carrier sensing or shared transmit queue.
+Replies still arrive over APRS-IS, so keep the existing login settings. An RF check-in needs an iGate within reach to get to ANSRVR. Scheduled and manual sends share an advisory playback lock at `/var/lib/aprs-thursday/rf-playback.lock`. Set `RF_LOCK_FILE` to override its absolute path. Both services need write access and must use the same file. Each send waits up to 30 seconds for the lock. Other applications sharing the transmitter must honor the same lock or arrange separate airtime.
 
 ## Installation
 

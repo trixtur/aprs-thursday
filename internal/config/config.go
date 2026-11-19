@@ -10,21 +10,21 @@ import (
 )
 
 type Config struct {
-	TXMode, RFPath, RFDevice string
-	RFDelay                  time.Duration
-	OperatorCallsign         string
-	APRSCallsign             string
-	APRSPasscode             string
-	APRSISServer             string
-	WeeklyMessage            string
-	MessageOverrides         string
-	InboxPath                string
-	OutboxPath               string
-	CardOutputDir            string
-	CardGreeting             string
-	CardLocation             string
-	ScheduleTime             string
-	ScheduleTimezone         string
+	TXMode, RFPath, RFDevice, RFLockFile string
+	RFDelay                              time.Duration
+	OperatorCallsign                     string
+	APRSCallsign                         string
+	APRSPasscode                         string
+	APRSISServer                         string
+	WeeklyMessage                        string
+	MessageOverrides                     string
+	InboxPath                            string
+	OutboxPath                           string
+	CardOutputDir                        string
+	CardGreeting                         string
+	CardLocation                         string
+	ScheduleTime                         string
+	ScheduleTimezone                     string
 }
 
 func FromEnv(getenv func(string) string) (Config, error) {
@@ -49,6 +49,7 @@ func FromEnv(getenv func(string) string) (Config, error) {
 	c.TXMode = getenvOr(getenv, "APRS_TX_MODE", "aprs-is")
 	switch c.TXMode {
 	case "rf":
+		c.RFLockFile = getenvOr(getenv, "RF_LOCK_FILE", "/var/lib/aprs-thursday/rf-playback.lock")
 		c.RFDevice = getenvOr(getenv, "RF_AUDIO_DEVICE", "plughw:0,0")
 		c.RFPath = strings.TrimSpace(getenv("RF_PATH"))
 		delay, err := time.ParseDuration(getenvOr(getenv, "RF_TX_DELAY", "500ms"))

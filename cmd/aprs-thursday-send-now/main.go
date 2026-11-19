@@ -49,7 +49,7 @@ func main() {
 	}
 	var publisher send.Publisher
 	if cfg.TXMode == "rf" {
-		publisher, err = rf.New(cfg.APRSCallsign, cfg.RFPath, cfg.RFDevice, cfg.RFDelay)
+		publisher, err = rf.New(cfg.APRSCallsign, cfg.RFPath, cfg.RFDevice, cfg.RFLockFile, cfg.RFDelay)
 		if err != nil {
 			log.Fatal(err)
 		}

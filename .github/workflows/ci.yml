@@ -80,7 +80,15 @@ jobs:
             exit 1
           fi
 
+      - name: Install RF test decoder
+        if: steps.detect.outputs.has-module == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes multimon-ng
+
       - name: Run tests with race detection
+        env:
+          REQUIRE_RF_DECODE: '1'
         if: steps.detect.outputs.has-module == 'true'
         run: go test -race ./...
 

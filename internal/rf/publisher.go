@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"math"
 	"os/exec"
+	"path/filepath"
+
+	"github.com/gofrs/flock"
 	"regexp"
 	"strconv"
 	"strings"
@@ -19,12 +22,14 @@ const sampleRate = 22050
 var address = regexp.MustCompile("^([A-Z0-9]{1,6})(-([0-9]{1,2}))?$")
 
 type Publisher struct {
-	header []byte
-	device string
-	lead   time.Duration
+	header   []byte
+	device   string
+	aplay    string
+	lockFile string
+	lead     time.Duration
 }
 
-func New(call, path, device string, lead time.Duration) (*Publisher, error) {
+func New(call, path, device, lockFile string, lead time.Duration) (*Publisher, error) {
 	if lead < 0 || lead > 5*time.Second {
 		return nil, fmt.Errorf("RF_TX_DELAY must be between 0s and 5s")
 	}
@@ -57,7 +62,14 @@ func New(call, path, device string, lead time.Duration) (*Publisher, error) {
 		}
 		header = append(header, flags)
 	}
-	return &Publisher{append(header, 0x03, 0xf0), device, lead}, nil
+	if !filepath.IsAbs(lockFile) {
+		return nil, fmt.Errorf("RF_LOCK_FILE requires an absolute path")
+	}
+	aplay, err := exec.LookPath("aplay")
+	if err != nil {
+		return nil, fmt.Errorf("RF mode requires aplay: %w", err)
+	}
+	return &Publisher{header: append(header, 0x03, 0xf0), device: device, lead: lead, aplay: aplay, lockFile: lockFile}, nil
 }
 
 func (p *Publisher) Publish(body string) error {
@@ -68,9 +80,21 @@ func (p *Publisher) Publish(body string) error {
 	frame = append(frame, ":ANSRVR   :"...)
 	frame = append(frame, body...)
 	pcm := audio(frame, p.lead)
+	// Use a separate descriptor for every send, including concurrent callers.
+	lock := flock.New(p.lockFile)
+	wait, stopWaiting := context.WithTimeout(context.Background(), 30*time.Second)
+	defer stopWaiting()
+	acquired, err := lock.TryLockContext(wait, 50*time.Millisecond)
+	if err != nil {
+		return fmt.Errorf("acquire RF playback lock: %w", err)
+	}
+	if !acquired {
+		return fmt.Errorf("RF playback lock unavailable")
+	}
+	defer lock.Unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, "aplay", "-q", "-D", p.device, "-t", "raw", "-f", "S16_LE", "-c", "1", "-r", "22050")
+	cmd := exec.CommandContext(ctx, p.aplay, "-q", "-D", p.device, "-t", "raw", "-f", "S16_LE", "-c", "1", "-r", "22050")
 	cmd.Stdin = bytes.NewReader(pcm)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("RF playback: %w: %s", err, strings.TrimSpace(string(out)))
