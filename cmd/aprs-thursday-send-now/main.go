@@ -11,7 +11,9 @@ import (
 	"github.com/trixtur/aprs-thursday/internal/aprsis"
 	"github.com/trixtur/aprs-thursday/internal/config"
 	"github.com/trixtur/aprs-thursday/internal/message"
+	"github.com/trixtur/aprs-thursday/internal/rf"
 	"github.com/trixtur/aprs-thursday/internal/schedule"
+	"github.com/trixtur/aprs-thursday/internal/send"
 )
 
 func main() {
@@ -45,13 +47,22 @@ func main() {
 	if err != nil {
 		log.Fatalf("resolve weekly message: %v", err)
 	}
-	client, err := aprsis.Dial(cfg.APRSISServer, cfg.APRSCallsign, cfg.APRSPasscode)
-	if err != nil {
-		log.Fatal(err)
+	var publisher send.Publisher
+	if cfg.TXMode == "rf" {
+		publisher, err = rf.New(cfg.APRSCallsign, cfg.RFPath, cfg.RFDevice, cfg.RFLockFile, cfg.RFDelay)
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		client, err := aprsis.Dial(cfg.APRSISServer, cfg.APRSCallsign, cfg.APRSPasscode)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer client.Close()
+		shared := aprsis.NewShared(cfg.APRSCallsign)
+		shared.Set(client)
+		publisher = shared
 	}
-	defer client.Close()
-	publisher := aprsis.NewShared(cfg.APRSCallsign)
-	publisher.Set(client)
 	if err := publisher.Publish(body); err != nil {
 		log.Fatal(err)
 	}

@@ -16,6 +16,8 @@ import (
 	"github.com/trixtur/aprs-thursday/internal/observe"
 	"github.com/trixtur/aprs-thursday/internal/outbox"
 	"github.com/trixtur/aprs-thursday/internal/receive"
+	"github.com/trixtur/aprs-thursday/internal/rf"
+	"github.com/trixtur/aprs-thursday/internal/send"
 	"github.com/trixtur/aprs-thursday/internal/service"
 	"github.com/trixtur/aprs-thursday/internal/state"
 	"github.com/trixtur/aprs-thursday/internal/weekly"
@@ -46,6 +48,13 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	shared := aprsis.NewShared(cfg.APRSCallsign)
+	var publisher send.Publisher = shared
+	if cfg.TXMode == "rf" {
+		publisher, err = rf.New(cfg.APRSCallsign, cfg.RFPath, cfg.RFDevice, cfg.RFLockFile, cfg.RFDelay)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 	factory := func() (service.LineSource, error) {
 		client, err := aprsis.Dial(cfg.APRSISServer, cfg.APRSCallsign, cfg.APRSPasscode)
 		if err != nil {
@@ -58,7 +67,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	scheduler := weekly.Scheduler{Location: location, Hour: hour, Minute: minute, RegularPath: cfg.WeeklyMessage, OverridesDir: cfg.MessageOverrides, Publisher: shared, State: weeklyState}
+	scheduler := weekly.Scheduler{Location: location, Hour: hour, Minute: minute, RegularPath: cfg.WeeklyMessage, OverridesDir: cfg.MessageOverrides, Publisher: publisher, State: weeklyState}
 	errs := make(chan error, 2)
 	go func() {
 		errs <- service.ReceiveWithReconnect(ctx, factory, cfg.OperatorCallsign, pipeline, logger, 5*time.Second)
